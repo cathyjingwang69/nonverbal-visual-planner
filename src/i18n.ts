@@ -146,6 +146,43 @@ const S = {
   resetAll: ['Reset to defaults', '恢复默认'],
   resetConfirm: ['This removes scenes, photos, focus history and logged moments on this device.', '这将删除本设备上的场景、照片、重点历史和记录。'],
   testVoice: ['Test voice', '试听'],
+
+  // now / dynamic coach
+  rightNow: ['Right now', '现在'],
+  happeningNow: ['{scene} is happening now', '正在进行：{scene}'],
+  nextUp: ['Next · {scene} at {time}', '接下来 · {time} {scene}'],
+  inMinutes: ['in {n} min', '{n} 分钟后'],
+  tryThisNow: ['One thing to try', '现在可以试试'],
+  setUp: ['Set up', '准备'],
+  sayAndTap: ['Say and tap', '说并点击'],
+  thenWait: ['Then wait', '然后等待'],
+  ifNothing: ['If nothing comes', '如果没有回应'],
+  ideasFromScene: ['Ideas built from the words in this scene', '根据这个场景中的词生成的想法'],
+  moreIdeas: ['More ideas for this scene', '这个场景的更多想法'],
+  aboutWord: ['about {word}', '关于「{word}」'],
+  useSceneNow: ['Use this scene', '切换到这个场景'],
+  jumpToNow: ['Jump to now', '跳到现在'],
+  scriptsEmpty: ['Add scene words to get ideas built around them.', '添加场景词以获得围绕它们的想法。'],
+
+  // child
+  parentsHold: ['Parents: hold to exit', '家长：长按退出'],
+  keepHolding: ['Keep holding…', '继续按住……'],
+
+  // share explainer
+  shareWhat: ['Share with team', '与团队分享'],
+  shareExplain: [
+    'A single page for the adults who are with {name} but don’t use this app: her teacher, OT, support workers, grandparents. It says what we’re working on, how to model it, and what not to do — nothing else.',
+    '给那些和 {name} 在一起但不使用本应用的成人的一页：老师、OT、支持人员、祖父母。它说明我们在练什么、如何示范、以及不要做什么——仅此而已。',
+  ],
+
+  // therapist workspace
+  clinicianWorkspace: ['Clinician workspace', '临床工作区'],
+  openClinician: ['Therapist workspace', '治疗师工作区'],
+  backToFamily: ['Back to family view', '返回家庭视图'],
+  focusPlan: ['Focus plan', '重点计划'],
+  evidence: ['Evidence', '证据'],
+  familyPreview: ['Family preview', '家庭预览'],
+  clinicianNote: ['No sign-in yet in this prototype. Anyone with the link can open this workspace; a proper clinician login comes with the shared backend.', '本原型暂无登录。有链接的人都可以打开此工作区；正式的临床登录将随共享后端一起提供。'],
 } as const
 
 export type StringKey = keyof typeof S

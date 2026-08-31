@@ -76,7 +76,7 @@ export function Therapist() {
             <div className="chips">
               {state.scenes.map((s) => (
                 <Chip key={s.id} selected={draft.targetSceneIds.includes(s.id)} onClick={() => toggleScene(s.id)}>
-                  {s.icon} {label(s)}
+                  {label(s)}
                 </Chip>
               ))}
             </div>

@@ -9,12 +9,12 @@ A contextual acquisition and scaffolding layer for nonspeaking and minimally spe
 | Surface | Who | What it does |
 | --- | --- | --- |
 | **Today** | Parent | The day as a quiet timeline of scenes. Current scene shows fixed core words + 3–6 scene words. One tap starts Child Mode. |
-| **Child Mode** | Child | Full-screen. Core words never move (rail on tablet, bottom strip on phone). Tap → calm pressed feedback + speech. No scores, rewards, or correctness states. Parent exits with a deliberate 2-second hold. |
+| **Child Mode** | Child | Full-screen, every word visible at once. The core row is always first and never moves; scene words follow at the same size. Tap → calm pressed feedback + speech. No scores, rewards, or correctness states. Parents exit with a labelled 2-second hold. |
 | **Scenes** | Parent | Build and reorder the day. Pick scene words from the library or add new ones. Replace any card visual or scene visual with a family photo. |
-| **How to model** | Any adult | 3–5 natural opportunities for the focus word in the current scene, "what if she doesn't tap?" branches, and one-tap evidence logging (independent / modelled / prompted / other modality / unclear / stopped). |
-| **Therapist Studio** | Speech pathologist | Versioned weekly focus: target concept, rationale, accepted response modalities, wait time, prompt guidance, target scenes, review date. Families see a plain-language translation. |
+| **How to model** | Any adult | Time-aware: knows which scene is happening now. Ideas are short scripts (set up → say and tap → wait → if nothing) built from the words actually in the scene, with a wait-timer button for the clinician's wait time. Plus "what if she doesn't tap?" branches and one-tap evidence logging. |
+| **Clinician workspace** | Speech pathologist | Separate entry (`#therapist`, or the link in the sidebar). Versioned weekly focus: target concept, rationale, accepted response modalities, wait time, prompt guidance, target scenes, review date. Families see a plain-language translation. |
 | **Progress** | Parent + therapist | Communication evidence, not click counts: classification totals, a scene × partner generalisation matrix, and a 14-day rhythm. Ships with clearly-flagged sample data you can clear. |
-| **Team share** | School / OT / support | One screen: the focus, how to model it, today's words, and what *not* to do. Copy as text or as a read-only link. |
+| **Share with team** | School / OT / support | One page for the adults around the child who don't use the app: the focus, how to model it, today's words, and what *not* to do. Copy as text or as a read-only link. |
 
 ## Principles encoded in the product
 
@@ -29,7 +29,8 @@ A contextual acquisition and scaffolding layer for nonspeaking and minimally spe
 - React 19 + TypeScript + Vite, installable PWA (offline-first once loaded)
 - All data stays on-device in IndexedDB — nothing is uploaded
 - Web Speech API for speech output (English `en-AU` and 中文 `zh-CN`; full bilingual UI)
-- Provider-neutral vocabulary: visuals resolve through a `SymbolProvider` adapter. The default is a built-in pictogram set; **PCS (Tobii Dynavox) is scaffolded as a switchable provider but requires a licence and is not bundled.**
+- Original monoline SVG pictogram set (`src/glyphs.ts`) — no emoji, consistent across devices, licence-clean
+- Provider-neutral vocabulary: visuals resolve through a `SymbolProvider` adapter. The default is the built-in pictogram set; **PCS (Tobii Dynavox) is scaffolded as a switchable provider but requires a licence and is not bundled.**
 
 ## Develop
 

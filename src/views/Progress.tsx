@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useStore } from '../store'
 import { Eyebrow } from '../components/ui'
+import { SceneVisual } from '../components/Glyph'
 import { CLASSIFICATIONS, PARTNERS } from '../i18n'
 import { relTime } from '../utils'
 
@@ -110,7 +111,7 @@ export function Progress() {
                 return (
                   <li key={e.id} className="moment">
                     <span className="moment-main">
-                      <span aria-hidden="true">{sc?.icon ?? '·'}</span> {sc ? label(sc) : e.sceneId} · <b>{label(conceptById(e.conceptId))}</b>
+                      {sc && <span className="inline-scene" aria-hidden="true"><SceneVisual icon={sc.icon} photo={sc.photo} /></span>} {sc ? label(sc) : e.sceneId} · <b>{label(conceptById(e.conceptId))}</b>
                       <span className="muted">
                         {' '}
                         · {lang === 'en' ? pa.en : pa.zh} · {relTime(e.at, lang)}
@@ -163,7 +164,7 @@ export function GeneralisationMatrix({ conceptId }: { conceptId: string }) {
         {scenes.map((s) => (
           <tr key={s.id}>
             <th scope="row">
-              <span aria-hidden="true">{s.icon}</span> {label(s)}
+              <span className="inline-scene" aria-hidden="true"><SceneVisual icon={s.icon} photo={s.photo} /></span> {label(s)}
             </th>
             {partners.map((p) => {
               const c = cell(s.id, p.id)

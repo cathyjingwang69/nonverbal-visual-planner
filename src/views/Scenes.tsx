@@ -4,9 +4,8 @@ import { useNav } from '../nav'
 import { Chip, Eyebrow, Field, Sheet, SymbolCard } from '../components/ui'
 import { fileToDataUrl, fmtTime, uid } from '../utils'
 import type { Scene } from '../types'
-import { resolveSymbol } from '../symbols'
-
-const ICONS = ['🌅', '🥣', '🎒', '🪁', '🍲', '🛁', '🌙', '🚗', '🏫', '🏞️', '📚', '🎵', '🧸', '🍎', '🧑‍⚕️', '🛒']
+import { ConceptVisual, Icon, Pictogram, SceneVisual } from '../components/Glyph'
+import { SCENE_GLYPHS, SCENE_ICON_IDS } from '../glyphs'
 
 export function Scenes({ editing, onEdit }: { editing: string | 'new' | null; onEdit: (id: string | 'new' | null) => void }) {
   const { state, dispatch, tr, label, conceptById } = useStore()
@@ -29,14 +28,16 @@ export function Scenes({ editing, onEdit }: { editing: string | 'new' | null; on
         {state.scenes.map((s, i) => (
           <li key={s.id} className={'scene-row' + (s.id === state.currentSceneId ? ' is-current' : '')}>
             <button type="button" className="scene-row-main" onClick={() => dispatch({ type: 'setCurrentScene', id: s.id })}>
-              <span className="scene-row-visual">{s.photo ? <img src={s.photo} alt="" /> : s.icon}</span>
+              <span className="scene-row-visual">
+                <SceneVisual icon={s.icon} photo={s.photo} />
+              </span>
               <span className="scene-row-text">
                 <span className="scene-row-time">{fmtTime(s.time)}</span>
                 <span className="scene-row-name">{label(s)}</span>
                 <span className="scene-row-words">
                   {s.contextualConceptIds.map((id) => (
                     <span key={id} className="mini-card">
-                      <MiniGlyph id={id} /> {label(conceptById(id))}
+                      <ConceptVisual id={id} /> {label(conceptById(id))}
                     </span>
                   ))}
                 </span>
@@ -44,16 +45,16 @@ export function Scenes({ editing, onEdit }: { editing: string | 'new' | null; on
             </button>
             <span className="scene-row-actions">
               <button type="button" className="btn-icon" onClick={() => dispatch({ type: 'moveScene', id: s.id, dir: -1 })} disabled={i === 0} aria-label={tr('moveUp')} title={tr('moveUp')}>
-                ↑
+                <Icon name="up" />
               </button>
               <button type="button" className="btn-icon" onClick={() => dispatch({ type: 'moveScene', id: s.id, dir: 1 })} disabled={i === state.scenes.length - 1} aria-label={tr('moveDown')} title={tr('moveDown')}>
-                ↓
+                <Icon name="down" />
               </button>
               <button type="button" className="btn-soft" onClick={() => onEdit(s.id)}>
                 {tr('edit')}
               </button>
-              <button type="button" className="btn-soft" onClick={() => { dispatch({ type: 'setCurrentScene', id: s.id }); nav.startChild() }}>
-                ▶
+              <button type="button" className="btn-soft" onClick={() => { dispatch({ type: 'setCurrentScene', id: s.id }); nav.startChild() }} aria-label={tr('startWith', { name: state.settings.childName })}>
+                <Icon name="play" size={16} />
               </button>
             </span>
           </li>
@@ -63,12 +64,6 @@ export function Scenes({ editing, onEdit }: { editing: string | 'new' | null; on
       <SceneEditor id={editing} onClose={() => onEdit(null)} />
     </div>
   )
-}
-
-function MiniGlyph({ id }: { id: string }) {
-  const { state } = useStore()
-  const s = resolveSymbol(id, state.settings.provider, state.overrides)
-  return s.kind === 'image' ? <img src={s.src} alt="" /> : <>{s.glyph}</>
 }
 
 export function SceneEditor({ id, onClose }: { id: string | 'new' | null; onClose: () => void }) {
@@ -85,7 +80,7 @@ export function SceneEditor({ id, onClose }: { id: string | 'new' | null; onClos
     setDraft(
       existing
         ? { ...existing, contextualConceptIds: [...existing.contextualConceptIds] }
-        : { id: 's_' + uid(), en: '', zh: '', time: '12:00', icon: '🛁', photo: null, contextualConceptIds: [] },
+        : { id: 's_' + uid(), en: '', zh: '', time: '12:00', icon: 'bath', photo: null, contextualConceptIds: [] },
     )
     setFilter('')
   }, [id, existing])
@@ -141,17 +136,19 @@ export function SceneEditor({ id, onClose }: { id: string | 'new' | null; onClos
             <input type="time" value={draft.time} onChange={(e) => patch({ time: e.target.value })} />
           </Field>
           <Field label={tr('sceneIcon')}>
-            <div className="chips">
-              {ICONS.map((ic) => (
-                <Chip key={ic} selected={draft.icon === ic} onClick={() => patch({ icon: ic })}>
-                  {ic}
-                </Chip>
+            <div className="icon-grid">
+              {SCENE_ICON_IDS.map((ic) => (
+                <button key={ic} type="button" className={'icon-pick' + (draft.icon === ic ? ' is-selected' : '')} onClick={() => patch({ icon: ic })} aria-label={ic} aria-pressed={draft.icon === ic}>
+                  <Pictogram glyph={SCENE_GLYPHS[ic]} />
+                </button>
               ))}
             </div>
           </Field>
           <Field label={tr('scenePhoto')} hint={tr('photoHint')}>
             <div className="photo-row">
-              <span className="photo-thumb">{draft.photo ? <img src={draft.photo} alt="" /> : draft.icon}</span>
+              <span className="photo-thumb">
+                <SceneVisual icon={draft.icon} photo={draft.photo} />
+              </span>
               <span className="btn-soft file-btn">
                 {tr('uploadPhoto')}
                 <input type="file" accept="image/*" onChange={(e) => onScenePhoto(e.target.files?.[0])} />
@@ -176,16 +173,16 @@ export function SceneEditor({ id, onClose }: { id: string | 'new' | null; onClos
                   <SymbolCard concept={conceptById(cid)} size="sm" />
                   <div className="editor-card-actions">
                     <span className="btn-icon file-btn" title={tr('replacePhoto')}>
-                      📷
+                      <Icon name="photo" size={15} />
                       <input type="file" accept="image/*" onChange={(e) => onWordPhoto(cid, e.target.files?.[0])} />
                     </span>
                     {state.overrides.some((o) => o.conceptId === cid) && (
                       <button type="button" className="btn-icon" title={tr('resetVisual')} onClick={() => dispatch({ type: 'clearOverride', conceptId: cid })}>
-                        ↺
+                        <Icon name="reset" size={15} />
                       </button>
                     )}
                     <button type="button" className="btn-icon" title="Remove" onClick={() => toggleWord(cid)}>
-                      ✕
+                      <Icon name="close" size={15} />
                     </button>
                   </div>
                 </div>
@@ -200,7 +197,7 @@ export function SceneEditor({ id, onClose }: { id: string | 'new' | null; onClos
             <div className="chips library">
               {libraryFiltered.map((c) => (
                 <Chip key={c.id} selected={draft.contextualConceptIds.includes(c.id)} onClick={() => toggleWord(c.id)} title={c.en}>
-                  <MiniGlyph id={c.id} /> {label(c)}
+                  <ConceptVisual id={c.id} /> {label(c)}
                 </Chip>
               ))}
             </div>
@@ -211,8 +208,8 @@ export function SceneEditor({ id, onClose }: { id: string | 'new' | null; onClos
             <div className="row">
               <input value={newEn} onChange={(e) => setNewEn(e.target.value)} placeholder={tr('newWordEn')} onKeyDown={(e) => e.key === 'Enter' && addWord()} />
               <input value={newZh} onChange={(e) => setNewZh(e.target.value)} placeholder={tr('newWordZh')} onKeyDown={(e) => e.key === 'Enter' && addWord()} />
-              <button type="button" className="btn-soft" onClick={addWord}>
-                +
+              <button type="button" className="btn-soft" onClick={addWord} aria-label={tr('addWord')}>
+                <Icon name="plus" size={16} />
               </button>
             </div>
           </div>

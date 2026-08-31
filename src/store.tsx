@@ -3,6 +3,7 @@ import { get, set } from 'idb-keyval'
 import type { AppState, CommunicationEvent, Scene, Settings, TherapyFocus, VisualOverride, VocabularyConcept } from './types'
 import { initialState } from './data/defaults'
 import { t, type StringKey } from './i18n'
+import { LEGACY_SCENE_EMOJI } from './glyphs'
 
 const KEY = 'ccc-state-v1'
 
@@ -102,6 +103,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const base = initialState()
           const libIds = new Set(saved.library.map((c) => c.id))
           saved.library = [...saved.library, ...base.library.filter((c) => !libIds.has(c.id))]
+          saved.scenes = saved.scenes.map((sc) => ({ ...sc, icon: LEGACY_SCENE_EMOJI[sc.icon] ?? sc.icon }))
           dispatch({ type: 'hydrate', state: saved })
         }
       })

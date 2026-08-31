@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { useNav } from '../nav'
 import { Chip, Eyebrow, SymbolCard } from '../components/ui'
-import { opportunitiesFor, WHAT_IF } from '../data/coach'
+import { Icon, SceneVisual } from '../components/Glyph'
+import { ScriptCard } from '../components/ScriptCard'
+import { opportunitiesFor, scriptsFor, ifNothingFor, WHAT_IF, type Script } from '../data/coach'
 import { CLASSIFICATIONS, MODALITIES, PARTNERS } from '../i18n'
-import { uid } from '../utils'
+import { useDayClock } from '../dayclock'
+import { fmtTime, uid } from '../utils'
 import type { Classification } from '../types'
 
 export function Coach() {
@@ -12,14 +15,31 @@ export function Coach() {
   const nav = useNav()
   const lang = state.settings.lang
   const L = lang === 'en' ? 0 : 1
+  const clock = useDayClock(state.scenes)
   const [wordId, setWordId] = useState(focus.conceptId)
-  const [openQ, setOpenQ] = useState<number | null>(0)
+  const [openQ, setOpenQ] = useState<number | null>(null)
   const [cls, setCls] = useState<Classification | null>(null)
-  const [rotate, setRotate] = useState(0)
 
   const word = conceptById(wordId)
-  const allTips = opportunitiesFor(wordId, scene.id)
-  const tips = allTips.length > 3 ? allTips.slice(rotate % allTips.length).concat(allTips.slice(0, rotate % allTips.length)).slice(0, 3) : allTips
+  const isNow = clock.current?.id === scene.id
+
+  // Ideas: vetted scene-specific ones first, then scripts composed from the scene's own words.
+  const scripts = useMemo<Script[]>(() => {
+    const vetted = opportunitiesFor(wordId, scene.id)
+    const w = label(word)
+    const fromVetted: Script[] = (vetted.length >= 2 ? vetted : []).map((v, i) => ({
+      key: 'v' + i,
+      aboutId: null,
+      title: v.title[L],
+      setup: v.step[L],
+      say: lang === 'en' ? `"${w}" — tap ${w.toUpperCase()} once, then hands off.` : `说“${w}”——点一次「${w}」，然后把手放开。`,
+      ifNothing: ifNothingFor(wordId, lang),
+      why: v.why[L],
+    }))
+    const words = scene.contextualConceptIds.map((id) => ({ id, label: conceptById(id) }))
+    return [...fromVetted, ...scriptsFor(wordId, w, words, lang)]
+  }, [wordId, scene, lang, L, label, word, conceptById])
+
   const available = [...state.core, ...scene.contextualConceptIds.map(conceptById)]
 
   const save = () => {
@@ -42,15 +62,37 @@ export function Coach() {
         </div>
       </header>
 
-      <section className="section">
+      {/* Time context */}
+      <section className="section nowbar">
+        <div className="nowbar-scene">
+          <span className="nowbar-visual" aria-hidden="true">
+            <SceneVisual icon={scene.icon} photo={scene.photo} />
+          </span>
+          <div>
+            <b>{isNow ? tr('happeningNow', { scene: label(scene) }) : `${label(scene)} · ${fmtTime(scene.time)}`}</b>
+            <div className="muted small">
+              {clock.next && clock.minutesToNext != null
+                ? `${tr('nextUp', { scene: label(clock.next), time: fmtTime(clock.next.time) })} · ${tr('inMinutes', { n: clock.minutesToNext })}`
+                : ''}
+              {!isNow && clock.current && (
+                <button type="button" className="btn-inline" onClick={() => dispatch({ type: 'setCurrentScene', id: clock.current!.id })}>
+                  {tr('jumpToNow')} → {label(clock.current)}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
         <div className="chips">
           {state.scenes.map((s) => (
             <Chip key={s.id} selected={s.id === scene.id} onClick={() => dispatch({ type: 'setCurrentScene', id: s.id })}>
-              {s.icon} {label(s)}
+              {label(s)}
             </Chip>
           ))}
         </div>
-        <div className="vocab-row core" style={{ marginTop: 14 }}>
+      </section>
+
+      <section className="section">
+        <div className="vocab-row core">
           {available.map((c, i) => (
             <SymbolCard key={c.id} concept={c} size="sm" tone={i < state.core.length ? i : undefined} as="button" onClick={() => setWordId(c.id)} pressed={c.id === wordId} />
           ))}
@@ -58,27 +100,18 @@ export function Coach() {
       </section>
 
       <section className="section grid-2">
-        <div className="panel">
-          <div className="panel-head">
-            <h2 className="panel-title">{tr('opportunities')}</h2>
-            {allTips.length > 3 && (
-              <button type="button" className="btn-soft" onClick={() => setRotate((r) => r + 1)}>
-                {tr('anotherIdea')}
-              </button>
-            )}
+        <div className="stack">
+          <div className="section-head" style={{ marginBottom: 0 }}>
+            <h2>{tr('opportunities')}</h2>
+            <span className="muted small">{tr('ideasFromScene')}</span>
           </div>
-          <ol className="tips large">
-            {tips.map((tip, i) => (
-              <li key={i} className="tip">
-                <b>{tip.title[L]}</b>
-                <span>{tip.step[L]}</span>
-                <em>{tip.why[L]}</em>
-              </li>
-            ))}
-          </ol>
-          <div className="modalities">
+          {scripts.length === 0 && <p className="muted">{tr('scriptsEmpty')}</p>}
+          {scripts.map((s) => (
+            <ScriptCard key={s.key} script={s} />
+          ))}
+          <div className="panel panel-quiet">
             <span className="field-label">{tr('acceptedWays')}</span>
-            <div className="chips">
+            <div className="chips" style={{ marginTop: 8 }}>
               {MODALITIES.filter((m) => focus.modalities.includes(m.id)).map((m) => (
                 <span key={m.id} className="chip is-static">
                   {lang === 'en' ? m.en : m.zh}
@@ -96,7 +129,7 @@ export function Coach() {
                 <div key={i} className={'acc-item' + (openQ === i ? ' is-open' : '')}>
                   <button type="button" className="acc-q" onClick={() => setOpenQ(openQ === i ? null : i)} aria-expanded={openQ === i}>
                     {w.q[L]}
-                    <span aria-hidden="true">{openQ === i ? '–' : '+'}</span>
+                    <Icon name={openQ === i ? 'up' : 'down'} size={16} />
                   </button>
                   {openQ === i && <p className="acc-a">{i === 5 ? tr('waitRule', { n: focus.waitSeconds, who: focus.author }) : w.a[L]}</p>}
                 </div>
@@ -116,8 +149,8 @@ export function Coach() {
               ))}
             </div>
             <div className="row wrap" style={{ marginTop: 12 }}>
-              <span className="muted">
-                {tr('scene')}: {label(scene)} · {tr('word')}: {label(word)} · {tr('partner')}:
+              <span className="muted small">
+                {label(scene)} · {label(word)} ·
               </span>
               <div className="chips">
                 {PARTNERS.map((p) => (
@@ -132,7 +165,7 @@ export function Coach() {
                 {tr('saveMoment')}
               </button>
               <button type="button" className="btn-soft" onClick={nav.startChild}>
-                ▶ {tr('startWith', { name: state.settings.childName })}
+                <Icon name="play" size={16} /> {tr('startWith', { name: state.settings.childName })}
               </button>
             </div>
           </div>

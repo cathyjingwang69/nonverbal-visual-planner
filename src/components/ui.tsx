@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
 import type { VocabularyConcept } from '../types'
-import { resolveSymbol } from '../symbols'
 import { useStore } from '../store'
+import { ConceptVisual, Icon } from './Glyph'
 
 /** A communication card: visual + word, consistent geometry everywhere. */
 export function SymbolCard({
@@ -19,13 +19,12 @@ export function SymbolCard({
   pressed?: boolean
   as?: 'div' | 'button'
 }) {
-  const { state, label } = useStore()
-  const sym = resolveSymbol(concept.id, state.settings.provider, state.overrides)
+  const { label } = useStore()
   const cls = ['sym', `sym-${size}`, tone != null ? `tone-${tone}` : '', pressed ? 'is-pressed' : ''].join(' ')
   const inner = (
     <>
       <div className="sym-visual" aria-hidden="true">
-        {sym.kind === 'image' ? <img src={sym.src} alt="" /> : <span className="sym-glyph">{sym.glyph}</span>}
+        <ConceptVisual id={concept.id} />
       </div>
       <div className="sym-word">{label(concept)}</div>
     </>
@@ -85,7 +84,7 @@ export function Sheet({ open, onClose, title, children, wide }: { open: boolean;
         <header className="sheet-head">
           <h2>{title}</h2>
           <button type="button" className="btn-icon" onClick={onClose} aria-label="Close">
-            ✕
+            <Icon name="close" />
           </button>
         </header>
         <div className="sheet-body">{children}</div>

@@ -51,11 +51,11 @@ export const LIBRARY: VocabularyConcept[] = [
 ]
 
 export const DEFAULT_SCENES: Scene[] = [
-  { id: 'wake', en: 'Wake up', zh: '起床', time: '07:00', icon: '🌅', contextualConceptIds: ['up', 'clothes', 'light', 'bed'] },
-  { id: 'breakfast', en: 'Breakfast', zh: '早餐', time: '07:40', icon: '🥣', contextualConceptIds: ['eat', 'drink', 'cereal', 'finished'] },
-  { id: 'school', en: 'School', zh: '学校', time: '08:30', icon: '🎒', contextualConceptIds: ['bag', 'bus', 'friend', 'home'] },
-  { id: 'play', en: 'Play', zh: '玩', time: '16:00', icon: '🪁', contextualConceptIds: ['toy', 'swing', 'outside', 'again'] },
-  { id: 'dinner', en: 'Dinner', zh: '晚餐', time: '18:15', icon: '🍲', contextualConceptIds: ['eat', 'food', 'water', 'finished'] },
+  { id: 'wake', en: 'Wake up', zh: '起床', time: '07:00', icon: 'wake', contextualConceptIds: ['up', 'clothes', 'light', 'bed'] },
+  { id: 'breakfast', en: 'Breakfast', zh: '早餐', time: '07:40', icon: 'breakfast', contextualConceptIds: ['eat', 'drink', 'cereal', 'finished'] },
+  { id: 'school', en: 'School', zh: '学校', time: '08:30', icon: 'school', contextualConceptIds: ['bag', 'bus', 'friend', 'home'] },
+  { id: 'play', en: 'Play', zh: '玩', time: '16:00', icon: 'play', contextualConceptIds: ['toy', 'swing', 'outside', 'again'] },
+  { id: 'dinner', en: 'Dinner', zh: '晚餐', time: '18:15', icon: 'dinner', contextualConceptIds: ['eat', 'food', 'water', 'finished'] },
 ]
 
 const inDays = (n: number) => {

@@ -104,3 +104,66 @@ export function focusPlainLanguage(f: TherapyFocus, lang: Lang, word: string, ch
     ? `This week we’re helping ${childName} use ${word.toUpperCase()}. Model it once, wait ${f.waitSeconds} seconds, and respond to any clear communication — not just a tap. Review on ${f.reviewDate}.`
     : `本周我们帮助 ${childName} 使用「${word}」。示范一次，等待 ${f.waitSeconds} 秒，回应任何清楚的沟通——不只是点击。${f.reviewDate} 复查。`
 }
+
+// ── Dynamic scripts ────────────────────────────────────────────────────────
+// Composed from the focus word × the words actually in the current scene, so
+// ideas match what is on the table right now, not a fixed list.
+
+export interface Script {
+  key: string
+  /** The scene word the script is built around (null = focus word alone). */
+  aboutId: string | null
+  title: string
+  setup: string
+  say: string
+  ifNothing: string
+  why?: string
+}
+
+export const IF_NOTHING: Record<string, [string, string]> = {
+  help: ['Help anyway after the wait. Try again next time it comes up.', '等待结束后仍然帮忙。下次再试。'],
+  more: ['Give more anyway. The chance comes back in a minute.', '无论如何再给一些。机会一分钟后又会来。'],
+  stop: ['Carry on gently. Never use STOP as a test.', '温和地继续。不要把“停”当作测试。'],
+  no: ['Take it away anyway if she showed you. Refusal is communication.', '如果她表示了，无论如何拿走。拒绝也是沟通。'],
+  go: ['Go anyway. The pause is the opportunity; the outcome is not a test.', '无论如何出发。停顿就是机会。'],
+}
+export function ifNothingFor(focusId: string, lang: Lang) {
+  return (IF_NOTHING[focusId] ?? ['Carry on with the routine. Not every moment has to be a communication moment.', '继续日常。不是每一刻都必须是沟通时刻。'])[lang === 'en' ? 0 : 1]
+}
+
+type Lbl = { en: string; zh: string }
+
+const SCRIPT_TEMPLATES: Record<string, (w: string, target: string, lang: Lang) => Omit<Script, 'key' | 'aboutId'>> = {
+  help: (w, t, l) =>
+    l === 'en'
+      ? { title: `${w} that needs a hand`, setup: `Make the ${w} a little hard to get, open, or use. Keep it in view.`, say: `"${t}" — tap ${t.toUpperCase()} once, then hands off.`, ifNothing: `Help anyway after the wait. Try again next time the ${w} comes up.` }
+      : { title: `需要帮忙的「${w}」`, setup: `让「${w}」有点难拿到、难打开或难使用。保持在视线内。`, say: `说“${t}”——点一次「${t}」，然后把手放开。`, ifNothing: `等待结束后仍然帮忙。下次「${w}」出现时再试。` },
+  more: (w, t, l) =>
+    l === 'en'
+      ? { title: `A little ${w}, then pause`, setup: `Give a small amount of ${w}. Keep the rest visible.`, say: `"${t}" — tap ${t.toUpperCase()} once as you give a bit more, then stop again.`, ifNothing: `Give more anyway. Small portions mean the chance comes back in a minute.` }
+      : { title: `一点点「${w}」，然后停`, setup: `给一点「${w}」。剩下的放在看得见的地方。`, say: `说“${t}”——再给一点时点一次「${t}」，然后再停下。`, ifNothing: `无论如何再给一些。小份量意味着机会一分钟后又会来。` },
+  stop: (w, t, l) =>
+    l === 'en'
+      ? { title: `Stop the ${w}`, setup: `While the ${w} is happening, pause and look at her.`, say: `"${t}" — tap ${t.toUpperCase()} and stop immediately. Stop must always work.`, ifNothing: `Carry on gently. Never use STOP as a test.` }
+      : { title: `停下「${w}」`, setup: `在「${w}」进行时，停顿并看着她。`, say: `说“${t}”——点「${t}」并立即停下。“停”必须总是有效。`, ifNothing: `温和地继续。不要把“停”当作测试。` },
+  no: (w, t, l) =>
+    l === 'en'
+      ? { title: `Offer ${w} she may not want`, setup: `Hold out the ${w}. Watch for a turn-away, push, or look.`, say: `"${t}" — tap ${t.toUpperCase()} and take it away straight away.`, ifNothing: `Take it away anyway if she showed you. Refusal is communication.` }
+      : { title: `给她可能不想要的「${w}」`, setup: `拿出「${w}」。观察她是否转头、推开或看你。`, say: `说“${t}”——点「${t}」并立即拿走。`, ifNothing: `如果她表示了，无论如何拿走。拒绝也是沟通。` },
+  go: (w, t, l) =>
+    l === 'en'
+      ? { title: `Ready for ${w}? Pause first`, setup: `Get everything ready for ${w}, then stop just before it starts.`, say: `"${t}" — tap ${t.toUpperCase()} and go straight away.`, ifNothing: `Go anyway. The pause is the opportunity; the outcome is not a test.` }
+      : { title: `准备好「${w}」了吗？先停一下`, setup: `为「${w}」准备好一切，然后在开始前停住。`, say: `说“${t}”——点「${t}」并立即出发。`, ifNothing: `无论如何出发。停顿就是机会；结果不是测试。` },
+}
+
+const GENERIC_SCRIPT = (w: string, t: string, l: Lang): Omit<Script, 'key' | 'aboutId'> =>
+  l === 'en'
+    ? { title: `${t} with the ${w}`, setup: `Have the real ${w} there. Do the thing once so she sees what the word means.`, say: `"${t}" — tap ${t.toUpperCase()} once at the moment it matters.`, ifNothing: `Carry on with the routine. Not every moment has to be a communication moment.` }
+    : { title: `用「${w}」示范「${t}」`, setup: `把真实的「${w}」放在那里。做一次让她看到这个词的意思。`, say: `说“${t}”——在关键时刻点一次「${t}」。`, ifNothing: `继续日常。不是每一刻都必须是沟通时刻。` }
+
+export function scriptsFor(focusId: string, focusLabel: string, sceneWords: { id: string; label: Lbl }[], lang: Lang): Script[] {
+  const tpl = SCRIPT_TEMPLATES[focusId] ?? GENERIC_SCRIPT
+  return sceneWords
+    .filter((w) => w.id !== focusId)
+    .map((w) => ({ key: `${focusId}-${w.id}`, aboutId: w.id, ...tpl(lang === 'en' ? w.label.en : w.label.zh, focusLabel, lang) }))
+}

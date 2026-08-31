@@ -2,15 +2,12 @@ import { useMemo } from 'react'
 import { useStore } from '../store'
 import { useNav } from '../nav'
 import { Eyebrow, SymbolCard } from '../components/ui'
-import { opportunitiesFor } from '../data/coach'
+import { ConceptVisual, Icon, SceneVisual } from '../components/Glyph'
+import { ScriptCard } from '../components/ScriptCard'
+import { scriptsFor, opportunitiesFor, ifNothingFor } from '../data/coach'
+import { useDayClock } from '../dayclock'
 import { fmtTime } from '../utils'
 import { PARTNERS } from '../i18n'
-import { resolveSymbol } from '../symbols'
-
-function nowHHMM() {
-  const d = new Date()
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-}
 
 export function Today() {
   const { state, dispatch, tr, label, scene, focus, conceptById } = useStore()
@@ -18,18 +15,31 @@ export function Today() {
   const lang = state.settings.lang
   const name = state.settings.childName
   const focusWord = conceptById(focus.conceptId)
-
-  // Scheduled suggestion: the latest scene whose time has passed.
-  const suggestedId = useMemo(() => {
-    const now = nowHHMM()
-    let pick = state.scenes[0]?.id
-    for (const s of state.scenes) if (s.time <= now) pick = s.id
-    return pick
-  }, [state.scenes])
+  const clock = useDayClock(state.scenes)
+  const isNow = clock.current?.id === scene.id
 
   const dateLabel = new Date().toLocaleDateString(lang === 'en' ? 'en-AU' : 'zh-CN', { weekday: 'long', day: 'numeric', month: 'long' })
 
-  const tips = opportunitiesFor(focus.conceptId, scene.id).slice(0, 3)
+  // One script for the current scene — built from its words, so it matches what's actually there.
+  const script = useMemo(() => {
+    const words = scene.contextualConceptIds.map((id) => ({ id, label: conceptById(id) }))
+    const s = scriptsFor(focus.conceptId, label(focusWord), words, lang)
+    // Prefer a vetted, scene-specific opportunity if one exists; otherwise the first composed script.
+    const vetted = opportunitiesFor(focus.conceptId, scene.id)[0]
+    if (vetted && vetted !== undefined && opportunitiesFor(focus.conceptId, scene.id).length >= 2) {
+      const L = lang === 'en' ? 0 : 1
+      return {
+        key: 'vetted',
+        aboutId: null,
+        title: vetted.title[L],
+        setup: vetted.step[L],
+        say: lang === 'en' ? `"${label(focusWord)}" — tap ${label(focusWord).toUpperCase()} once, then hands off.` : `说“${label(focusWord)}”——点一次「${label(focusWord)}」，然后把手放开。`,
+        ifNothing: ifNothingFor(focus.conceptId, lang),
+        why: vetted.why[L],
+      }
+    }
+    return s[0] ?? null
+  }, [scene, focus.conceptId, focusWord, lang, label, conceptById])
 
   const insight = useMemo(() => {
     const ev = state.events.filter((e) => e.conceptId === focus.conceptId)
@@ -56,9 +66,7 @@ export function Today() {
     <div className="page">
       <header className="page-head">
         <div>
-          <Eyebrow>
-            {tr('today')} · {dateLabel}
-          </Eyebrow>
+          <Eyebrow>{dateLabel}</Eyebrow>
           <h1>{tr('dayTitle', { name })}</h1>
           <p className="lede">{tr('daySub')}</p>
         </div>
@@ -66,7 +74,7 @@ export function Today() {
           <span className="focus-pill-label">{tr('thisWeekFocus')}</span>
           <span className="focus-pill-word">
             <span className="focus-glyph" aria-hidden="true">
-              <SymbolGlyph id={focus.conceptId} />
+              <ConceptVisual id={focus.conceptId} />
             </span>
             {label(focusWord).toUpperCase()}
             <span className="focus-version">v{focus.version}</span>
@@ -87,16 +95,18 @@ export function Today() {
         <ol className="dayline" aria-label={tr('todaysScenes')}>
           {state.scenes.map((s) => {
             const active = s.id === scene.id
-            const suggested = s.id === suggestedId
+            const now = clock.current?.id === s.id
             return (
-              <li key={s.id} className={'dayline-item' + (active ? ' is-active' : '')}>
+              <li key={s.id} className={'dayline-item' + (active ? ' is-active' : '') + (now ? ' is-now' : '')}>
                 <button type="button" className="dayline-btn" onClick={() => dispatch({ type: 'setCurrentScene', id: s.id })} aria-current={active ? 'true' : undefined}>
                   <span className="dayline-time">
                     {fmtTime(s.time)}
-                    {suggested && <em className="dayline-now">{tr('now')}</em>}
+                    {now && <em className="dayline-now">{tr('now')}</em>}
                   </span>
                   <span className="dayline-dot" aria-hidden="true" />
-                  <span className="dayline-visual">{s.photo ? <img src={s.photo} alt="" /> : <span>{s.icon}</span>}</span>
+                  <span className="dayline-visual">
+                    <SceneVisual icon={s.icon} photo={s.photo} />
+                  </span>
                   <span className="dayline-name">{label(s)}</span>
                   <span className="dayline-words">{s.contextualConceptIds.map((id) => label(conceptById(id))).join(' · ')}</span>
                 </button>
@@ -107,7 +117,7 @@ export function Today() {
             <button type="button" className="dayline-btn" onClick={() => nav.editScene('new')}>
               <span className="dayline-time"> </span>
               <span className="dayline-dot is-add" aria-hidden="true">
-                +
+                <Icon name="plus" size={12} />
               </span>
               <span className="dayline-name">{tr('addScene')}</span>
             </button>
@@ -119,11 +129,30 @@ export function Today() {
         <div className="panel">
           <div className="panel-head">
             <div>
-              <Eyebrow>{tr('currentScene')}</Eyebrow>
+              <Eyebrow>{isNow ? tr('rightNow') : tr('currentScene')}</Eyebrow>
               <h2 className="scene-title">
-                <span aria-hidden="true">{scene.photo ? <img className="scene-thumb" src={scene.photo} alt="" /> : scene.icon}</span> {label(scene)}
+                <span className="scene-thumb" aria-hidden="true">
+                  <SceneVisual icon={scene.icon} photo={scene.photo} />
+                </span>
+                {label(scene)}
               </h2>
-              <div className="muted">{fmtTime(scene.time)}</div>
+              <div className="muted small">
+                {fmtTime(scene.time)}
+                {clock.next && isNow && clock.minutesToNext != null && (
+                  <>
+                    {' · '}
+                    {tr('nextUp', { scene: label(clock.next), time: fmtTime(clock.next.time) })} ({tr('inMinutes', { n: clock.minutesToNext })})
+                  </>
+                )}
+                {!isNow && clock.current && (
+                  <>
+                    {' · '}
+                    <button type="button" className="btn-inline" onClick={() => dispatch({ type: 'setCurrentScene', id: clock.current!.id })}>
+                      {tr('jumpToNow')} → {label(clock.current)}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
             <button type="button" className="btn-soft" onClick={() => nav.editScene(scene.id)}>
               {tr('editCards')}
@@ -152,26 +181,21 @@ export function Today() {
 
           <div className="actions">
             <button type="button" className="btn-primary" onClick={nav.startChild}>
-              {tr('startWith', { name })}
+              <Icon name="play" size={16} /> {tr('startWith', { name })}
             </button>
             <button type="button" className="btn-soft" onClick={() => nav.go('coach')}>
-              {tr('quickIdeas')}
+              {tr('moreIdeas')}
             </button>
           </div>
         </div>
 
         <div className="stack">
           <div className="panel">
-            <Eyebrow>{tr('coachTitle')}</Eyebrow>
-            <h3 className="panel-title">{tr('coachSub', { word: label(focusWord).toUpperCase(), scene: label(scene) })}</h3>
-            <ol className="tips">
-              {tips.map((tip, i) => (
-                <li key={i} className="tip">
-                  <b>{tip.title[lang === 'en' ? 0 : 1]}</b>
-                  <span>{tip.step[lang === 'en' ? 0 : 1]}</span>
-                </li>
-              ))}
-            </ol>
+            <Eyebrow>{tr('tryThisNow')}</Eyebrow>
+            <div className="muted small" style={{ marginBottom: 10 }}>
+              {label(focusWord).toUpperCase()} · {label(scene)}
+            </div>
+            {script ? <ScriptCard script={script} compact /> : <p className="muted">{tr('scriptsEmpty')}</p>}
             <button type="button" className="btn-link" onClick={() => nav.go('coach')}>
               {tr('whatIf')} →
             </button>
@@ -186,12 +210,7 @@ export function Today() {
             <Eyebrow>{tr('partner')}</Eyebrow>
             <div className="chips" style={{ marginTop: 8 }}>
               {PARTNERS.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={'chip' + (state.settings.partner === p.id ? ' is-selected' : '')}
-                  onClick={() => dispatch({ type: 'setSettings', patch: { partner: p.id } })}
-                >
+                <button key={p.id} type="button" className={'chip' + (state.settings.partner === p.id ? ' is-selected' : '')} onClick={() => dispatch({ type: 'setSettings', patch: { partner: p.id } })}>
                   {lang === 'en' ? p.en : p.zh}
                 </button>
               ))}
@@ -201,10 +220,4 @@ export function Today() {
       </section>
     </div>
   )
-}
-
-export function SymbolGlyph({ id }: { id: string }) {
-  const { state } = useStore()
-  const s = resolveSymbol(id, state.settings.provider, state.overrides)
-  return s.kind === 'image' ? <img src={s.src} alt="" /> : <>{s.glyph}</>
 }

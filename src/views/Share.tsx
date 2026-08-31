@@ -1,6 +1,7 @@
 import { useStore } from '../store'
 import { useNav } from '../nav'
 import { Eyebrow, SymbolCard } from '../components/ui'
+import { Icon, SceneVisual } from '../components/Glyph'
 import { opportunitiesFor, focusPlainLanguage } from '../data/coach'
 import { MODALITIES } from '../i18n'
 
@@ -29,7 +30,7 @@ export function buildSharePayload(s: ReturnType<typeof useStore>): SharePayload 
     modalities: MODALITIES.filter((m) => focus.modalities.includes(m.id)).map((m) => (lang === 'en' ? m.en : m.zh)),
     reviewDate: focus.reviewDate,
     author: focus.author,
-    scenes: targets.map((sc) => ({ name: label(sc), icon: sc.icon, words: sc.contextualConceptIds.map((id) => label(conceptById(id))) })),
+    scenes: targets.map((sc) => ({ name: label(sc), icon: '', words: sc.contextualConceptIds.map((id) => label(conceptById(id))) })),
     tips: targets.map((sc) => {
       const t = opportunitiesFor(focus.conceptId, sc.id)[0]
       return { scene: label(sc), title: t.title[L], step: t.step[L] }
@@ -67,7 +68,7 @@ export function Share() {
       '',
       ...p.tips.map((t) => `${t.scene}: ${t.title} — ${t.step}`),
       '',
-      ...p.scenes.map((s) => `${s.icon} ${s.name}: ${s.words.join(' · ')}`),
+      ...p.scenes.map((s) => `${s.name}: ${s.words.join(' · ')}`),
       '',
       `${tr('shareWhatNot')}: ${tr('shareDont1')}; ${tr('shareDont2')}; ${tr('shareDont3')}.`,
       `${tr('shareValid', { date: p.reviewDate })} · ${p.author}`,
@@ -95,15 +96,15 @@ export function Share() {
       <header className="page-head">
         <div>
           <Eyebrow>{tr('share')}</Eyebrow>
-          <h1>{tr('shareTitle')}</h1>
-          <p className="lede">{tr('shareSub')}</p>
+          <h1>{tr('shareWhat')}</h1>
+          <p className="lede">{tr('shareExplain', { name })}</p>
         </div>
         <div className="row">
           <button type="button" className="btn-soft" onClick={() => copy(asText())}>
-            {tr('shareCopy')}
+            <Icon name="copy" size={16} /> {tr('shareCopy')}
           </button>
           <button type="button" className="btn-primary" onClick={() => copy(link())}>
-            {tr('shareLink')}
+            <Icon name="link" size={16} /> {tr('shareLink')}
           </button>
         </div>
       </header>
@@ -130,7 +131,7 @@ export function Share() {
                 return (
                   <li key={s.id} className="tip">
                     <b>
-                      {s.icon} {label(s)} — {t.title[L]}
+                      <span className="inline-scene" aria-hidden="true"><SceneVisual icon={s.icon} photo={s.photo} /></span> {label(s)} — {t.title[L]}
                     </b>
                     <span>{t.step[L]}</span>
                   </li>
@@ -228,7 +229,7 @@ export function ShareReadOnly({ p }: { p: SharePayload }) {
             <ul className="donts">
               {p.scenes.map((s) => (
                 <li key={s.name}>
-                  {s.icon} <b>{s.name}</b>: {s.words.join(' · ')}
+                  <b>{s.name}</b>: {s.words.join(' · ')}
                 </li>
               ))}
             </ul>
